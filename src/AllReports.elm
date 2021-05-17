@@ -1,4 +1,4 @@
-module OneReportCurrent exposing (..)
+module AllReports exposing (..)
 
 import Browser
 import Html exposing (..)

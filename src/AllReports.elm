@@ -43,7 +43,7 @@ type ModelState
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  (Model [] (Just "Press the button"), Cmd.none)
+  (Model [] Nothing, makeRequest)
 
 
 -- UPDATE
@@ -67,7 +67,7 @@ update msg model =
             Nothing ->
               ( { model | data = [], statusText = Just "Report not found" }, Cmd.none)
             Just reportList -> 
-              ( { model | data = reportList,  statusText = Just "Loaded some company reports" }, Cmd.none)
+              ( { model | data = reportList,  statusText = Nothing }, Cmd.none)
 
         RemoteData.NotAsked ->
           ( { model | statusText = Just "Starting load of the report" },  Cmd.none )
@@ -89,9 +89,17 @@ view : Model -> Html Msg
 view model =
   div []
     [ h2 [] [ text "Campaign report loader" ]
-    , button [ onClick StartSearch, disabled False ] [ text "Load all reports" ]
     , statusTextBar model.statusText
-    , displayReportTable model
+    , table [] (
+        List.concat [ [
+          thead [] [
+            th [][text "CompanyName"],
+            th [][text "CompanyBalance"]
+          ]
+          ],
+          List.map reportToRow model.data
+        ]
+      )
     ]
 
 statusTextBar : Maybe String -> Html Msg
@@ -100,20 +108,15 @@ statusTextBar statusText =
     Nothing -> div [] [] 
     Just someString -> div [] [text someString] 
 
-displayReportTable : Model -> Html Msg
-displayReportTable model =
-  div [] (List.map displayReport model.data)
-
-displayReport : Maybe CompanyReport -> Html Msg
-displayReport report =
-  case report of
-  Nothing -> pre [] []
+reportToRow : Maybe CompanyReport -> Html Msg
+reportToRow maybeReport =
+  case maybeReport of
+  Nothing -> div [] []
   Just someReport ->
-    pre [] [
-      text ("Name: " ++ Maybe.withDefault "<missing>" someReport.companyName ++ 
-            "\nBalance: " ++  Round.round 2 (Maybe.withDefault 0.0 someReport.companyBalance))
+    tr [] [
+      td[][text (Maybe.withDefault "<missing>" someReport.companyName)],
+      td[][text (Round.round 2 (Maybe.withDefault 0.0 someReport.companyBalance))]
     ]
-
 
 
 -- HTTP

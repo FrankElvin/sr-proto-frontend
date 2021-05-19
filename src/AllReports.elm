@@ -31,6 +31,8 @@ main =
 -- MODEL
 type alias Model =
   { data: List (Maybe CompanyReport)
+  , filteredData: List (Maybe CompanyReport)
+  , searchFilter: String
   , statusText: Maybe String
   }
  
@@ -43,12 +45,13 @@ type ModelState
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  (Model [] Nothing, makeRequest)
+  (Model [] [] "" Nothing, makeRequest)
 
 
 -- UPDATE
 type Msg 
-  = StartSearch 
+  = FilterData String
+  | StartSearch 
   | LoadReport ResponseModel
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -56,6 +59,16 @@ update msg model =
   case msg of
     StartSearch ->
       ( model, makeRequest )
+
+    FilterData filter ->
+      if (String.isEmpty filter) then
+        ( { model | searchFilter = filter, filteredData=model.data }, Cmd.none)
+      else 
+        ( { model |
+            searchFilter = filter
+          , filteredData = List.filter (isMatchingFilter filter) model.data
+          }
+        , Cmd.none)
 
     LoadReport responseModel -> 
       case responseModel of
@@ -67,7 +80,7 @@ update msg model =
             Nothing ->
               ( { model | data = [], statusText = Just "Report not found" }, Cmd.none)
             Just reportList -> 
-              ( { model | data = reportList,  statusText = Nothing }, Cmd.none)
+              ( { model | data = reportList, filteredData = reportList, statusText = Nothing }, Cmd.none)
 
         RemoteData.NotAsked ->
           ( { model | statusText = Just "Starting load of the report" },  Cmd.none )
@@ -75,6 +88,18 @@ update msg model =
         RemoteData.Failure error ->
           ( { model | statusText = Just "Failed to load the report" }, Cmd.none )
 
+isMatchingFilter : String -> Maybe CompanyReport -> Bool
+isMatchingFilter filter report =
+  case report of
+    Nothing -> False
+    Just someReport ->
+      case someReport.companyName of
+        Nothing -> False
+        Just name ->
+          if String.startsWith filter name then
+            True
+          else
+            False
 
 
 -- SUBSCRIPTIONS
@@ -89,16 +114,20 @@ view : Model -> Html Msg
 view model =
   div []
     [ h2 [] [ text "Campaign report loader" ]
+    , div [] [
+        input [ placeholder "Report search filter", onInput FilterData ] []
+      , button [ onClick StartSearch ] [ text "Update data" ]
+      ]
     , statusTextBar model.statusText
     , table [] (
-        List.concat [ [
-          thead [] [
-            th [][text "CompanyName"],
-            th [][text "CompanyBalance"]
+      List.concat [
+        [ thead []
+          [ th [][text "CompanyName"]
+          , th [][text "CompanyBalance"]
           ]
-          ],
-          List.map reportToRow model.data
         ]
+        , List.map reportToRow model.filteredData
+      ]
       )
     ]
 

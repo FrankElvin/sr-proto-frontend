@@ -30,7 +30,7 @@ main =
 
 -- MODEL
 type alias Model =
-  { data: List (Maybe CompanyReport)
+  { data: ResponseModel
   , filteredData: List (Maybe CompanyReport)
   , searchFilter: String
   , statusText: Maybe String
@@ -38,8 +38,7 @@ type alias Model =
  
 init : () -> (Model, Cmd Msg)
 init _ =
-  (Model [] [] "" Nothing, makeRequest)
-
+  (Model RemoteData.NotAsked [] "" Nothing, makeRequest)
 
 
 -- UPDATE
@@ -55,32 +54,25 @@ update msg model =
       ( model, makeRequest )
 
     FilterData filter ->
-      if (String.isEmpty filter) then
-        ( { model | searchFilter = filter, filteredData=model.data }, Cmd.none)
-      else 
-        ( { model |
-            searchFilter = filter
-          , filteredData = List.filter (isMatchingFilter filter) model.data
-          }
-        , Cmd.none)
+      ( { model | searchFilter = filter, filteredData = filterModelData model.data filter model.filteredData }, Cmd.none)
 
     LoadReport responseModel -> 
-      case responseModel of
-        RemoteData.Loading ->
-          ( { model | statusText = Just "Loading reports..." }, Cmd.none)
+      ( { model | data=responseModel, filteredData = filterModelData responseModel model.searchFilter model.filteredData  }, Cmd.none)
 
-        RemoteData.Success data ->
-          case data of
-            Nothing ->
-              ( { model | data = [], statusText = Just "No repors downloaded" }, Cmd.none)
-            Just reportList -> 
-              ( { model | data = reportList, filteredData = reportList, statusText = Nothing }, Cmd.none)
+filterModelData : ResponseModel -> String -> List (Maybe CompanyReport) -> List (Maybe CompanyReport)
+filterModelData responseModel filter currentData =
+  case responseModel of
+    RemoteData.NotAsked -> currentData
+    RemoteData.Loading -> currentData
+    RemoteData.Failure _ -> currentData
+    RemoteData.Success reports -> List.filter (isMatchingFilter filter) (unpackRequestResult reports)
 
-        RemoteData.NotAsked ->
-          ( { model | statusText = Just "Loading reports..." },  Cmd.none )
+unpackRequestResult : Maybe (List (Maybe CompanyReport)) -> List (Maybe CompanyReport)
+unpackRequestResult maybeReports = 
+  case maybeReports of
+    Nothing -> []
+    Just reports -> reports
 
-        RemoteData.Failure error ->
-          ( { model | statusText = Just "Failed to load reports" }, Cmd.none )
 
 isMatchingFilter : String -> Maybe CompanyReport -> Bool
 isMatchingFilter filter report =
@@ -113,15 +105,17 @@ view model =
         input [ placeholder "Report search filter", onInput FilterData ] []
       , button [ onClick StartSearch ] [ text "Update data" ]
       ]
-    , statusTextBar model.statusText
+    , statusTextBar model
     , reportTable model.filteredData
     ]
 
-statusTextBar : Maybe String -> Html Msg
-statusTextBar statusText = 
-  case statusText of 
-    Nothing -> div [] [] 
-    Just someString -> div [] [text someString] 
+statusTextBar : Model -> Html Msg
+statusTextBar model = 
+  case model.data of
+    RemoteData.NotAsked -> div [] []
+    RemoteData.Loading -> div [] [text "Loading..."]
+    RemoteData.Failure _ -> div [] [text "Failed to load reports"]
+    RemoteData.Success _ -> div [] []
 
 reportToRow : Maybe CompanyReport -> Html Msg
 reportToRow maybeReport =

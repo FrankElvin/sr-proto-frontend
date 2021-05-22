@@ -36,16 +36,10 @@ type alias Model =
   , statusText: Maybe String
   }
  
-type ModelState
-  = Waiting 
-  | LoadFailure String
-  | Loading Int
-  | Success
-
-
 init : () -> (Model, Cmd Msg)
 init _ =
   (Model [] [] "" Nothing, makeRequest)
+
 
 
 -- UPDATE
@@ -78,15 +72,15 @@ update msg model =
         RemoteData.Success data ->
           case data of
             Nothing ->
-              ( { model | data = [], statusText = Just "Report not found" }, Cmd.none)
+              ( { model | data = [], statusText = Just "No repors downloaded" }, Cmd.none)
             Just reportList -> 
               ( { model | data = reportList, filteredData = reportList, statusText = Nothing }, Cmd.none)
 
         RemoteData.NotAsked ->
-          ( { model | statusText = Just "Starting load of the report" },  Cmd.none )
+          ( { model | statusText = Just "Loading reports..." },  Cmd.none )
 
         RemoteData.Failure error ->
-          ( { model | statusText = Just "Failed to load the report" }, Cmd.none )
+          ( { model | statusText = Just "Failed to load reports" }, Cmd.none )
 
 isMatchingFilter : String -> Maybe CompanyReport -> Bool
 isMatchingFilter filter report =
@@ -100,6 +94,7 @@ isMatchingFilter filter report =
             True
           else
             False
+
 
 
 -- SUBSCRIPTIONS
@@ -119,16 +114,7 @@ view model =
       , button [ onClick StartSearch ] [ text "Update data" ]
       ]
     , statusTextBar model.statusText
-    , table [] (
-      List.concat [
-        [ thead []
-          [ th [][text "CompanyName"]
-          , th [][text "CompanyBalance"]
-          ]
-        ]
-        , List.map reportToRow model.filteredData
-      ]
-      )
+    , reportTable model.filteredData
     ]
 
 statusTextBar : Maybe String -> Html Msg
@@ -146,6 +132,23 @@ reportToRow maybeReport =
       td[][text (Maybe.withDefault "<missing>" someReport.companyName)],
       td[][text (Round.round 2 (Maybe.withDefault 0.0 someReport.companyBalance))]
     ]
+
+reportTable : List (Maybe CompanyReport) -> Html Msg
+reportTable maybeReports =
+  if (maybeReports == []) then
+    div [] []
+  else
+    table [ ]
+    ( List.concat
+      [ [ thead []
+          [ th [] [text "Company Name"]
+          , th [] [text "Company Balance"]
+          ]
+        ]
+      , List.map reportToRow maybeReports
+      ]
+    )
+
 
 
 -- HTTP

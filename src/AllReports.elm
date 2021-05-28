@@ -124,8 +124,8 @@ view model =
         [ h1 [class "title"] [text "Campaign Report Viewer"]
         , h2 [class "subtitle"][text "Download company report data and filter it for analysis."]
         , div [class "columns"]
-          [ div [class "column is-3"] [input [placeholder "Report search filter", onInput FilterData ] []]
-          , div [class "column is-2"] [button [onClick StartSearch] [text "Update data"] ]
+          [ div [class "column is-3"] [input [placeholder "Report search filter", onInput FilterData, class "input is-info"] []]
+          , div [class "column is-1"] [button [onClick StartSearch, class "button is info"] [text "Update data"] ]
           ]
         , statusTextBar model
         ]

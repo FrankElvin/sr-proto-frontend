@@ -18,12 +18,13 @@ import ReportApi.Scalar as Scalar
 
 
 -- MAIN
+main : Program () Model Msg
 main =
-  Browser.element
+  Browser.document
     { init = init
+    , view = view
     , update = update
     , subscriptions = subscriptions
-    , view = view
     }
 
 
@@ -97,17 +98,52 @@ subscriptions _ =
 
 
 -- VIEW
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
-  div []
-    [ h2 [] [ text "Campaign report loader" ]
-    , div [] [
-        input [ placeholder "Report search filter", onInput FilterData ] []
-      , button [ onClick StartSearch ] [ text "Update data" ]
+  Document "SR Proto Report Viewer" 
+  -- [div []
+  --   [ h2 [ class "title is-size-4"] [ text "Campaign report loader" ]
+  --   , div [] [
+  --       input [ placeholder "Report search filter", onInput FilterData ] []
+  --     , button [ onClick StartSearch ] [ text "Update data" ]
+  --     ]
+  --   , statusTextBar model
+  --   , reportTable model.filteredData
+  --   ]
+  -- ]
+  [ nav [class "breadcrumb is-centered is-large"]
+    [ ul []
+      [ li [] [text "Home"]
+      , li [class "is-active"] [text "Report Viewer"]
       ]
-    , statusTextBar model
-    , reportTable model.filteredData
     ]
+  , section [class "section"]
+    [ div [class "columns"]
+      [
+        div [class "column is-10 is-offset-1"] 
+        [ h1 [class "title"] [text "Campaign Report Viewer"]
+        , h2 [class "subtitle"][text "Download company report data and filter it for analysis."]
+        , div [class "columns"]
+          [ div [class "column is-3"] [input [placeholder "Report search filter", onInput FilterData ] []]
+          , div [class "column is-2"] [button [onClick StartSearch] [text "Update data"] ]
+          ]
+        , statusTextBar model
+        ]
+      ]
+    ]
+  , div [class "columns"]
+    [ div [class "column is-10 is-offset-1"] 
+      [ reportTable model.filteredData
+      ]
+    ]
+   
+  ]
+
+type alias Document msg = 
+  { title: String
+  , body: List (Html msg)
+  }
+
 
 statusTextBar : Model -> Html Msg
 statusTextBar model = 
@@ -132,7 +168,7 @@ reportTable maybeReports =
   if (maybeReports == []) then
     div [] []
   else
-    table [ ]
+    table [ class "table is-bordered is-striped is-fullwidth" ]
     ( List.concat
       [ [ thead []
           [ th [] [text "Company Name"]

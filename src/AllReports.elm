@@ -39,7 +39,7 @@ type alias Model =
  
 init : () -> (Model, Cmd Msg)
 init _ =
-  (Model RemoteData.NotAsked [] "" Nothing, makeRequest)
+  (Model RemoteData.Loading [] "" Nothing, makeRequest)
 
 
 -- UPDATE
@@ -52,7 +52,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     StartSearch ->
-      ( model, makeRequest )
+      ( { model | data = RemoteData.Loading }, makeRequest )
 
     FilterData filter ->
       ( { model | searchFilter = filter, filteredData = filterModelData model.data filter model.filteredData }, Cmd.none)
@@ -101,16 +101,6 @@ subscriptions _ =
 view : Model -> Document Msg
 view model =
   Document "SR Proto Report Viewer" 
-  -- [div []
-  --   [ h2 [ class "title is-size-4"] [ text "Campaign report loader" ]
-  --   , div [] [
-  --       input [ placeholder "Report search filter", onInput FilterData ] []
-  --     , button [ onClick StartSearch ] [ text "Update data" ]
-  --     ]
-  --   , statusTextBar model
-  --   , reportTable model.filteredData
-  --   ]
-  -- ]
   [ nav [class "breadcrumb is-centered is-large"]
     [ ul []
       [ li [] [text "Home"]
@@ -149,8 +139,8 @@ statusTextBar : Model -> Html Msg
 statusTextBar model = 
   case model.data of
     RemoteData.NotAsked -> div [] []
-    RemoteData.Loading -> div [] [text "Loading..."]
-    RemoteData.Failure _ -> div [] [text "Failed to load reports"]
+    RemoteData.Loading -> article [class "message is-info"] [ div [class "message-body"] [text "Loading..."]]
+    RemoteData.Failure _ -> article [class "message is-danger"] [div [class "message-body"] [text "Failed to update report data"]]
     RemoteData.Success _ -> div [] []
 
 reportToRow : Maybe CompanyReport -> Html Msg

@@ -5,7 +5,7 @@ Frontend for a prototype project:
 
 Main file: [AllReports](./src/AllReports.elm), single-page application with all reports from the database table.
 
-### Building
+### Setup
 To run the project the following steps are required:
  - build and run the backend app
  - build frontend page `elm make ./src/AllReports.elm --output ./output/main.js`
